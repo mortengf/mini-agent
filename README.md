@@ -1,6 +1,6 @@
 # agent-phase1
 
-Phase 1 of an agentic AI study plan covering: Claude Code, Anthropic Skills, MCP, Codex CLI, Antigravity, and Agentic AI.
+Phase 1 of an agentic AI study plan covering: Claude Code, MCP, Claude Skills, Codex CLI, Antigravity, and Agentic AI in general.
 
 ## What this is
 
