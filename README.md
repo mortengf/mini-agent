@@ -11,11 +11,7 @@ Claude has no memory between API calls. The `messages` list grows with every ite
 ## Project structure
 
 ```
-<<<<<<< HEAD
-src/main/java/dk/studie/agent/
-=======
 src/main/java/mortengf/ai/agent/
->>>>>>> e2d4c02 (Initial commit)
 ├── Main.java                  # Entry point — defines tasks and runs the agent
 ├── ClaudeClient.java          # HTTP communication with the Anthropic API
 ├── AgentLoop.java             # The agent loop (send → tool call → result → repeat)
