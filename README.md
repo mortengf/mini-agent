@@ -1,4 +1,4 @@
-# agent-phase1
+# minimal-agent
 
 Phase 1 of an agentic AI study plan covering: Claude Code, MCP, Claude Skills, Codex CLI, Antigravity, and Agentic AI in general.
 
@@ -56,7 +56,7 @@ Claude cannot execute code itself. Your Java code is the arm Claude does not hav
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-xxxxxxxxxx
 mvn package -q
-java -jar target/agent-phase1-1.0-SNAPSHOT.jar
+java -jar target/minimal-agent-1.0-SNAPSHOT.jar
 ```
 
 ## Example output
