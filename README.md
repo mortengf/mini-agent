@@ -1,9 +1,4 @@
 # minimal-agent
-
-Phase 1 of an agentic AI study plan covering: Claude Code, MCP, Claude Skills, Codex CLI, Antigravity, and Agentic AI in general.
-
-## What this is
-
 A minimal Java implementation of an **agent loop** using the Anthropic Claude API with tool use. It demonstrates the core pattern of agentic AI: a loop where Claude reasons about a task, requests tool executions, receives results, and decides when it has enough information to produce a final answer.
 
 Claude has no memory between API calls. The `messages` list grows with every iteration and is sent in full each time — this is how Claude maintains context throughout the conversation.
