@@ -1,5 +1,5 @@
-# minimal-agent
-A minimal Java implementation of an **agent loop** using the Anthropic Claude API with tool use. It demonstrates the core pattern of agentic AI: a loop where Claude reasons about a task, requests tool executions, receives results, and decides when it has enough information to produce a final answer.
+# mini-agent
+A Java implementation of a mini **agent loop** using the Anthropic Claude API with tool use. It demonstrates the core pattern of agentic AI: a loop where Claude reasons about a task, requests tool executions, receives results, and decides when it has enough information to produce a final answer.
 
 Claude has no memory between API calls. The `messages` list grows with every iteration and is sent in full each time — this is how Claude maintains context throughout the conversation.
 
@@ -51,7 +51,7 @@ Claude cannot execute code itself. Your Java code is the arm Claude does not hav
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-xxxxxxxxxx
 mvn package -q
-java -jar target/minimal-agent-1.0-SNAPSHOT.jar
+java -jar target/mini-agent-1.0-SNAPSHOT.jar
 ```
 
 ## Example output
