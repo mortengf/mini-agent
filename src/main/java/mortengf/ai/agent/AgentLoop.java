@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import mortengf.ai.agent.tools.CalculatorTool;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,7 +12,7 @@ import java.util.List;
  * Implements the agent loop:
  *
  *   1. Send the full conversation history to Claude
- *   2. If Claude requests a tool call → execute it → append result to history
+ *   2. If Claude requests a tool call → execute it via MCP → append result to history
  *   3. Repeat until Claude returns a final text response
  *
  * Claude has no memory between API calls. The growing `messages` list is
@@ -25,14 +24,15 @@ public class AgentLoop {
     private static final int MAX_ITERATIONS = 10; // safety limit
 
     private final ClaudeClient client;
+    private final McpClientService mcpClientService;
     private final ObjectMapper mapper;
+    private final String tools;
 
-    // Tool definitions sent with every request so Claude knows what it can call
-    private static final String TOOLS = "[" + CalculatorTool.DEFINITION + "]";
-
-    public AgentLoop(ClaudeClient client) {
+    public AgentLoop(ClaudeClient client, McpClientService mcpClientService) throws Exception {
         this.client = client;
+        this.mcpClientService = mcpClientService;
         this.mapper = client.getMapper();
+        this.tools = mcpClientService.getToolsJson();
     }
 
     /**
@@ -55,7 +55,7 @@ public class AgentLoop {
         for (int iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
             System.out.println("\n[Iteration " + iteration + "] Sending to Claude...");
 
-            JsonNode response = client.sendMessages(messages, TOOLS);
+            JsonNode response = client.sendMessages(messages, tools);
 
             // stopReason tells us what Claude needs next:
             //   "tool_use" → Claude is saying: "I need you to run a tool for me before I can continue"
@@ -88,7 +88,7 @@ public class AgentLoop {
                         System.out.println("[Tool call] " + toolName +
                                 " with input: " + toolInput);
 
-                        String result = executeTool(toolName, toolInput);
+                        String result = mcpClientService.callTool(toolName, toolInput);
 
                         System.out.println("[Tool result] " + result);
 
@@ -113,13 +113,6 @@ public class AgentLoop {
         }
 
         throw new RuntimeException("Maximum iterations reached (" + MAX_ITERATIONS + ")");
-    }
-
-    private String executeTool(String toolName, JsonNode input) {
-        return switch (toolName) {
-            case "calculate" -> CalculatorTool.execute(input);
-            default          -> "Error: Unknown tool '" + toolName + "'";
-        };
     }
 
     private String extractText(JsonNode response) {

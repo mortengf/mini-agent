@@ -1,17 +1,20 @@
 # mini-agent
 A Java implementation of a mini **agent loop** using the Anthropic Claude API with tool use. It demonstrates the core pattern of agentic AI: a loop where Claude reasons about a task, requests tool executions, receives results, and decides when it has enough information to produce a final answer.
 
+Tools are discovered and executed dynamically via an external **MCP server** (Model Context Protocol), connected over stdio using the [MCP Java SDK](https://github.com/modelcontextprotocol/java-sdk).
+
 Claude has no memory between API calls. The `messages` list grows with every iteration and is sent in full each time — this is how Claude maintains context throughout the conversation.
 
 ## Project structure
 
 ```
 src/main/java/mortengf/ai/agent/
-├── Main.java                  # Entry point — defines tasks and runs the agent
-├── ClaudeClient.java          # HTTP communication with the Anthropic API
-├── AgentLoop.java             # The agent loop (send → tool call → result → repeat)
+├── Main.java                      # Entry point — defines tasks and runs the agent
+├── ClaudeClient.java              # HTTP communication with the Anthropic API
+├── AgentLoop.java                 # The agent loop (send → tool call → result → repeat)
+├── McpClientService.java          # MCP client — discovers and executes tools via stdio
 └── tools/
-    └── CalculatorTool.java    # A simple calculator tool (add, subtract, multiply, divide)
+    └── CalculatorToolOld.java     # Original hardcoded calculator — kept as a before/after reference
 ```
 
 ## How the agent loop works
@@ -23,7 +26,7 @@ src/main/java/mortengf/ai/agent/
               ↓ no
 [Claude returns stop_reason: "tool_use"]
               ↓
-[Your code executes the tool]
+[Your code executes the tool via MCP server]
               ↓
 [Tool result appended to message history]
               ↑_________________|
@@ -35,16 +38,34 @@ src/main/java/mortengf/ai/agent/
 [Loop ends — final text response returned]
 ```
 
-`stop_reason: "tool_use"` means Claude is saying: *"I need you to run a tool for me before I can continue."*  
+`stop_reason: "tool_use"` means Claude is saying: *"I need you to run a tool for me before I can continue."*
 `stop_reason: "end_turn"` means Claude is saying: *"I have everything I need — here is your answer."*
 
 Claude cannot execute code itself. Your Java code is the arm Claude does not have.
+
+## How MCP fits in
+
+`McpClientService` starts the MCP server as a subprocess and connects to it over stdio:
+
+1. **`listTools()`** — called once at startup to discover available tools and build the tool definitions sent to Claude on every request.
+2. **`callTool(name, arguments)`** — called each time Claude requests a tool, forwarding the call to the MCP server and returning the result.
+
+This means tools are defined entirely in the MCP server. The agent code has no knowledge of what tools exist or how they work — it just relays calls.
+
+## CalculatorToolOld
+
+`CalculatorToolOld` is the original calculator implementation from before the MCP refactor. It is kept intentionally as a reference to illustrate the difference between the two approaches:
+
+- **Before (CalculatorToolOld):** the tool's JSON schema and its execution logic live together in Java. Adding a tool means touching `AgentLoop`, `ClaudeClient`, and writing a new Java class.
+- **After (McpClientService + MCP server):** the agent has no hardcoded knowledge of any tool. Tools are discovered at runtime via `listTools()` and executed via `callTool()`. Adding a tool only requires changes to the MCP server.
 
 ## Prerequisites
 
 - Java 17+
 - Maven 3.6+
 - An [Anthropic API key](https://console.anthropic.com)
+- The calculator MCP server JAR at:
+  `/Users/mgf/Source/calculator-mcp-server/target/calculator-mcp-server-1.0-SNAPSHOT.jar`
 
 ## Running
 
@@ -83,10 +104,6 @@ Claude's answer: The result is 56,351.
 
 **Tool use** — Claude decides if and when to call a tool. You define what tools are available; Claude decides how to use them.
 
-**Orchestration** — Your Java code runs the loop, executes tools, and manages the message history. Claude reasons; your code acts.
+**Orchestration** — Your Java code runs the loop, executes tools via MCP, and manages the message history. Claude reasons; your code acts.
 
-**Generality** — `CalculatorTool` is pure Java with no AI dependency. `AgentLoop` is conceptually provider-agnostic — the loop structure is the same regardless of which LLM you use. Only `ClaudeClient` is Claude-specific.
-
-## Next steps
-
-Phase 2 of the study plan introduces MCP (Model Context Protocol) — a standard that decouples tool definitions from any specific AI provider, so tools like `CalculatorTool` can be defined once and used by any MCP-compatible AI.
+**MCP (Model Context Protocol)** — Tools are defined once in an MCP server and discovered at runtime. `AgentLoop` has no hardcoded knowledge of any tool — it relays whatever the MCP server exposes. Only `ClaudeClient` is Claude-specific; the rest of the loop structure is provider-agnostic.
